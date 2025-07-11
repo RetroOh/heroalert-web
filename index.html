@@ -1,0 +1,74 @@
+<!-- HeroAlert Web SOS Trigger Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HeroAlert SOS</title>
+  <style>
+    body { margin: 0; background: black; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+    button { font-size: 2em; padding: 1em 2em; background: red; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    #status { margin-top: 2em; font-size: 1em; color: #0f0; text-align: center; max-width: 90%; }
+  </style>
+</head>
+<body>
+  <button onclick="triggerSOS()">I NEED HELP</button>
+  <div id="status"></div>
+
+  <script>
+    async function triggerSOS() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = 'Triggering HeroAlert...';
+
+      // 1. Get Location
+      let locationData = { lat: null, lon: null };
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        locationData.lat = position.coords.latitude;
+        locationData.lon = position.coords.longitude;
+      } catch (err) {
+        console.warn('Location access failed or denied:', err);
+        statusEl.textContent += '\nLocation access denied. Sending SOS without location...';
+      }
+
+      // 2. Start audio recording
+      let audioBlob = null;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+
+        mediaRecorder.onstop = () => {
+          audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          uploadData(audioBlob, locationData);
+        };
+
+        mediaRecorder.start();
+
+        setTimeout(() => {
+          if (mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+          }
+        }, 5000); // 5 seconds of audio
+      } catch (err) {
+        console.error('Mic access denied or failed:', err);
+        statusEl.textContent += '\nMicrophone access denied. Sending SOS without audio...';
+        uploadData(null, locationData);
+      }
+    }
+
+    async function uploadData(audioBlob, locationData) {
+      const statusEl = document.getElementById('status');
+      // TODO: Upload to Firebase via API or fetch POST request
+      statusEl.textContent += '\nSOS sent. Help is on the way.';
+      console.log('Audio:', audioBlob);
+      console.log('Location:', locationData);
+      // Placeholder: Firebase upload logic
+    }
+  </script>
+</body>
+</html>
