@@ -3,98 +3,105 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>HeroAlert UK</title>
+  <title>HeroAlert</title>
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #000;
+      font-family: sans-serif;
+      background-color: #000;
       color: white;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     #globeViz {
-      height: 90vh;
-      width: 100%;
+      width: 100vw;
+      height: 80vh;
     }
 
-    #controls {
+    .controls {
       margin-top: 10px;
     }
 
     button {
-      padding: 12px 20px;
-      margin: 5px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .sos {
       background-color: red;
       color: white;
+      padding: 10px 20px;
+      border: none;
+      margin: 5px;
+      cursor: pointer;
+      font-size: 1rem;
     }
 
-    .cancel {
-      background-color: gray;
-      color: white;
+    #cancelBtn {
+      background-color: green;
+      display: none;
     }
 
     #status {
-      margin-top: 15px;
-      font-weight: bold;
-      font-size: 1.2rem;
+      margin-top: 10px;
+      color: yellow;
+      font-size: 1rem;
     }
   </style>
 </head>
 <body>
-  <h2>🌍 HeroAlert – UK Pilot</h2>
+  <h2>🌍 HeroAlert Emergency Globe</h2>
   <div id="globeViz"></div>
-
-  <div id="controls">
-    <button class="sos" onclick="triggerSOS()">🚨 I NEED HELP</button>
-    <button class="cancel" onclick="cancelSOS()" id="cancelBtn" style="display:none;">✅ Cancel – I'm Safe Now</button>
+  <div class="controls">
+    <button id="sosBtn">🚨 I NEED HELP</button>
+    <button id="cancelBtn">✅ I'm Safe Now</button>
+    <div id="status">No SOS active</div>
   </div>
 
-  <div id="status">Status: Idle</div>
-
-  <!-- Include Globe.gl dependencies -->
   <script src="https://unpkg.com/three"></script>
   <script src="https://unpkg.com/globe.gl"></script>
-
   <script>
-    const globe = Globe()(document.getElementById('globeViz'))
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
-      .backgroundColor('#000')
-      .pointAltitude('size')
-      .pointColor('color')
-      .pointsData([]);
-
-    // Center on UK
-    globe.pointOfView({ lat: 54.5, lng: -3.5, altitude: 1.5 }, 4000);
-
+    const globeContainer = document.getElementById('globeViz');
     const statusText = document.getElementById('status');
+    const sosBtn = document.getElementById('sosBtn');
     const cancelBtn = document.getElementById('cancelBtn');
 
-    let sosPoint = {
-      lat: 51.5074,
-      lng: -0.1278,
-      size: 0.1,
-      color: 'red'
-    };
+    const GlobeInstance = Globe()(globeContainer)
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .backgroundColor('#000')
+      .pointLat('lat')
+      .pointLng('lng')
+      .pointColor(() => 'red')
+      .pointAltitude(() => 0.1)
+      .pointsData([]);
+
+    const SOS_POINTS = [];
 
     function triggerSOS() {
-      globe.pointsData([sosPoint]);
-      statusText.textContent = "🚨 Broadcasting SOS signal from UK...";
-      cancelBtn.style.display = 'inline-block';
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          SOS_POINTS.push({ lat, lng });
+          GlobeInstance.pointsData([...SOS_POINTS]);
+          statusText.textContent = "📡 SOS Sent!";
+          sosBtn.style.display = 'none';
+          cancelBtn.style.display = 'inline-block';
+        }, () => {
+          statusText.textContent = "❌ Location access denied!";
+        });
+      } else {
+        statusText.textContent = "❌ Geolocation not supported!";
+      }
     }
 
     function cancelSOS() {
-      globe.pointsData([]);
-      statusText.textContent = "✅ You're marked safe.";
+      SOS_POINTS.length = 0;
+      GlobeInstance.pointsData([]);
+      statusText.textContent = "✅ SOS Cancelled";
+      sosBtn.style.display = 'inline-block';
       cancelBtn.style.display = 'none';
     }
+
+    sosBtn.addEventListener('click', triggerSOS);
+    cancelBtn.addEventListener('click', cancelSOS);
   </script>
 </body>
 </html>
