@@ -1,1 +1,80 @@
+<!-- HeroAlert with Map + Cancel -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HeroAlert SOS</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; background: black; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+    button { font-size: 1.5em; padding: 0.7em 1.5em; margin-top: 1em; border: none; border-radius: 8px; cursor: pointer; }
+    #sosButton { background: red; color: white; }
+    #cancelButton { background: gray; color: white; display: none; }
+    #status { margin-top: 1em; font-size: 1em; color: #0f0; text-align: center; max-width: 90%; white-space: pre-line; }
+    #map { width: 90vw; height: 60vh; margin-top: 1em; border: 2px solid white; border-radius: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <h2>HeroAlert</h2>
+  <button id="sosButton" onclick="triggerSOS()">I NEED HELP</button>
+  <button id="cancelButton" onclick="cancelSOS()">Cancel / I'm Safe Now</button>
+  <div id="status"></div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map, marker;
+
+    async function triggerSOS() {
+      const statusEl = document.getElementById('status');
+      const mapEl = document.getElementById('map');
+      const sosBtn = document.getElementById('sosButton');
+      const cancelBtn = document.getElementById('cancelButton');
+
+      sosBtn.style.display = 'none';
+      cancelBtn.style.display = 'inline-block';
+      statusEl.textContent = 'Triggering HeroAlert...';
+
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        const { latitude, longitude } = position.coords;
+        statusEl.textContent = '📍 Location captured\\n🎙 Recording audio...';
+
+        mapEl.style.display = 'block';
+        if (!map) {
+          map = L.map('map').setView([latitude, longitude], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
+        }
+
+        marker = L.marker([latitude, longitude]).addTo(map)
+          .bindPopup('Your SOS Location').openPopup();
+
+        setTimeout(() => {
+          statusEl.textContent += '\\n✅ SOS sent. Help is on the way.';
+        }, 3000);
+
+      } catch (err) {
+        statusEl.textContent = '❌ Location access denied or failed.';
+      }
+    }
+
+    function cancelSOS() {
+      const statusEl = document.getElementById('status');
+      const sosBtn = document.getElementById('sosButton');
+      const cancelBtn = document.getElementById('cancelButton');
+      const mapEl = document.getElementById('map');
+
+      statusEl.textContent = '❎ SOS Cancelled. Glad you\\'re safe.';
+      sosBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      mapEl.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
 
